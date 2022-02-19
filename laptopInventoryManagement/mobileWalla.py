@@ -3,13 +3,13 @@ import sys
 # Implemented by: NyangShawBin, nyangshawbin@gmail.com
 
 # Main idea: 
-# LaptopInventoryManager uses a hashtable (of fixed size k) to keep track of all departments' meta data.
+# LaptopInventoryManager uses a hashtable (of fixed size k) to keep track of all departments' meta data. 
 # A department's meta data is implemented using the 'Department' Class, which is essentially a node of a linkedList. This allow us to perform chaining for collision handling of conflicting hashed key.
 # LaptopInventoryManager also have a separate node, for the spare deparment which holds the company's spare laptop. Having this as a separate node which lie outside the hashtable allows O(1) lookup.
 
 # Below is an illustration of the hashtable to store all departments' meta data
 # size of hashtable is hard coded to be of max length 7
-# when department names are mapped to the same key, collision handling using chaningin is performed. E.g. department1Data, department2Data & department5Data having the same hashed key
+# when department names are mapped to the same key, collision handling using chaining is performed. E.g. department1Data, department2Data & department5Data having the same hashed key
 # {
 #  "key1": department1Data -> department2Data -> department5Data -> NULL 
 #  "key2: department3Data -> NULL
