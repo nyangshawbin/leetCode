@@ -1,35 +1,40 @@
 import sys
 
-# following is an illustration of using a hashtable to store our departments' data
-# Departments with the same hashed keys are chain together using linkedList, implemented using the 'Department' class.
-# size of hashtable is hard coded to be of length 7
+# Implemented by: NyangShawBin, nyangshawbin@gmail.com
+
+# Main idea: 
+# LaptopInventoryManager uses a hashtable (of fixed size k) to keep track of all departments' meta data.
+# A department's meta data is implemented using the 'Department' Class, which is essentially a node of a linkedList. This allow us to perform chaining for collision handling of conflicting hashed key.
+# LaptopInventoryManager also have a separate node, for the spare deparment which holds the company's spare laptop. Having this as a separate node which lie outside the hashtable allows O(1) lookup.
+
+# Below is an illustration of the hashtable to store all departments' meta data
+# size of hashtable is hard coded to be of max length 7
+# when department names are mapped to the same key, collision handling using chaningin is performed. E.g. department1Data, department2Data & department5Data having the same hashed key
 # {
 #  "key1": department1Data -> department2Data -> department5Data -> NULL 
-#
 #  "key2: department3Data -> NULL
 # }
 
+# Assumption made in this program:
+# 1. All department names are in alphabets, this allow the department name and laptop IDs to be parsed when returning laptop. E.g. "ABC2", return laptopID 2 to department "ABC"
+# 2. Departments' names are capital sensitive, as the ascii values of all characters are used in the hash function. 
 
-# Assumption:
-# 1. all department names are alphabets, this allow the department name and laptop IDs to be parsed when returning laptop.  
 
-
-# meta data of a department, implemented as a linked list. 
+# Meta data of a department, implemented as a linked list node
 # # E.g. Depart A has 2 laptops, none borrowed
 #       name = 'A'
 #       store = [1,1]
 #       numOfLaptops = 2
-# E.g. Depart B has 3 laptops, laptopID:#2 laptop borrowed
+# E.g. Depart B has 3 laptops, laptopID #2 laptop borrowed
 #       name = 'B'
 #       store = [1,0,1]
-#       numOfLaptops = 3
+#       numOfLaptops = 2
 class Department:
     def __init__(self, departmentName, numOfLaptops):
         self.name = departmentName
         self.store = [1 for i in range(numOfLaptops)]
         self.numOfLaptops = numOfLaptops
         self.next = None
-
 
 class LaptopInventoryManager:
     def __init__(self, departmentNumLaptopsMap, numSpareLaptops):
@@ -43,19 +48,19 @@ class LaptopInventoryManager:
         self.spareDepartment = None
         self.populateSpareData(numSpareLaptops)
 
+    # rudimentary implementation of using (sum of all ascii values) % k, with k being the size of hash table
     def hashFunction(self, departmentName):
         val = sum(ord(ch) for ch in departmentName)
         key = val % self.sizeHashTable
         return key
     
-    # Add department data into hash table
-    # perform collisin checking if key already exist
+    # Insert departmentData into hashtable
     def insertDepartmentData(self, departmentName, departmentData):
     
         # hashing department name 
         key = self.hashFunction(departmentName)
 
-        # if key is new 
+        # if key is new, add data directly
         if self.hashtable.get(key) is None:
             self.hashtable[key] = departmentData
             #print('department name mapped to', key, 'inserted directly')
@@ -69,13 +74,12 @@ class LaptopInventoryManager:
             curr.next = departmentData
             #print('department name mapped to', key, 'data inserted by chaining')
     
+    # querying department data from hashtable
     def findDepartmentData(self, departmentName):
-        # hashing department name 
         key = self.hashFunction(departmentName)
-
         curr = self.hashtable.get(key)
+
         while curr:
-            
             if curr.name != departmentName and curr.next:
                 print('department not found, trying next chain!')
                 curr = curr.next
@@ -86,8 +90,8 @@ class LaptopInventoryManager:
 
         # department doesnt exist
         return None
-
-
+    
+    # initializing all departments data into the hashtable
     def populateDepartmentHashTable(self, departmentNumLaptopsMap):
 
         # for each department
@@ -97,36 +101,37 @@ class LaptopInventoryManager:
             departmentData = Department(departmentName, numLaptops)
             self.insertDepartmentData(departmentName, departmentData)
 
-    # populate meta data for spare
+    # initializing spare department laptops outside the hashtable
     def populateSpareData(self, numSpareLaptops): 
         self.spareDepartment = Department('S', numSpareLaptops)
 
     def borrowLaptop(self, department):
         
-        id = None
-
         departmentData = self.findDepartmentData(department)
 
+        # if department exist and data is found
         if departmentData is not None:
+
+            # if department has laptops
             if departmentData.numOfLaptops > 0:
                 print('Borrowing from department...')
                 departmentData.numOfLaptops -=1
 
                 # find ID of next available laptop (earliest '1' in list)
                 id = departmentData.store.index(1)
-                # change status to '0'
+                # flip status to '0'
                 departmentData.store[id]=0
                 
                 return str(departmentData.name) + str(id+1)
             
-            #if department ran out of laptops, company has spare
+            #if department ran out of laptops and company has spare
             elif self.spareDepartment.numOfLaptops > 0:
                 print('Borrowing from spare...')
                 self.spareDepartment.numOfLaptops -=1
 
                 # find ID of next available laptop (earliest '1' in list)
                 id = self.spareDepartment.store.index(1)
-                # change status to '0'
+                # flip status to '0'
                 self.spareDepartment.store[id] = 0
                 
                 return str(self.spareDepartment.name) + str(id+1)
@@ -148,19 +153,20 @@ class LaptopInventoryManager:
         
         department = laptopId[:indexOfNumeric]
         id = int(laptopId[indexOfNumeric:])
-        print("returned laptop id: ", id , " to department: ", department)
+        print("returning laptop id: ", id , " to department: ", department)
 
         departmentData = self.findDepartmentData(department)
 
-        #update laptop status         
-        if department == 'S': #not spare
-            self.spareDepartment.numOfLaptops += 1
-            self.spareDepartment.store[id-1] = 1
-        else:
-            departmentData.numOfLaptops +=1
-            departmentData.store[id-1] =1
+        if departmentData:
+            #update laptop status         
+            if department == 'S': #not spare
+                self.spareDepartment.numOfLaptops += 1
+                self.spareDepartment.store[id-1] = 1
+            else:
+                departmentData.numOfLaptops +=1
+                departmentData.store[id-1] =1
 
-    
+    # util to check if department is inserted into hashtable
     def showDepartmentLaptops(self):
         print('Hashtable for departments:')
         for key, departmentData in self.hashtable.items():
@@ -171,6 +177,7 @@ class LaptopInventoryManager:
             
             print("Key:", key, "All Department:", allDepartmentInAtKey)
     
+    # util to check spare department laptops
     def showSpareLaptops(self):
         print('Spare:')
         print(self.spareDepartment.name , self.spareDepartment.store)
@@ -187,7 +194,7 @@ if __name__=='__main__':
     mgr.showSpareLaptops()
     print()
 
-    #main function
+    # PUZZLE DESCRIPTION
     print("assigned ID: ", mgr.borrowLaptop('A')) # A has 1 left
     print("assigned ID: ", mgr.borrowLaptop('A')) # A has 0 left
     print("assigned ID: ", mgr.borrowLaptop('B')) # B has 0 left
