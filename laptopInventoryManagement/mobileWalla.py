@@ -39,12 +39,14 @@ class LaptopInventoryManager:
             #print('department name mapped to', key, 'inserted directly')
 
         # if key already exist, perform collision handling
-        # add departmentData to end of chain
+        # add departmentData to start of chain (O(1) as compared to O(m), with m being the number departmentData at key)
         else:
-            curr = self.hashtable.get(key)
-            while curr.next:
-                curr = curr.next
-            curr.next = departmentData
+
+            #let new data point to current head
+            departmentData.next = self.hashtable[key]
+            #replace current head in hashtable with new data
+            self.hashtable[key] = departmentData
+
             #print('department name mapped to', key, 'data inserted by chaining')
     
     # querying department data from hashtable
